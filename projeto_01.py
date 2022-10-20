@@ -29,8 +29,6 @@ def newCustomer():
     }
 
     clientes[cpf] = cliente
-
-    #clientes.append(cliente)
     with open('banco.json', 'w') as f:
         json.dump(clientes, f)
     print("USUÁRIO CRIADO COM SUCESSO!!")
@@ -41,10 +39,9 @@ def deleteCustomer():
     cpf = input("Digite o CPF do usuário que deseja deletar: ")
     with open('banco.json', 'r') as f:
         clientes = json.load(f)
-    
-    for index, cliente in enumerate(clientes):
-        if cliente['cpf'] == cpf:
-            clientes.pop(index)
+    if cpf in clientes:
+        clientes.pop(cpf)
+         
     with open('banco.json', 'w') as f:
         json.dump(clientes, f)
     print("Cliente deletado!")
