@@ -1,3 +1,4 @@
+import json
 def menu():
     print("1 - Novo Cliente")
     print("2 - Apaga Cliente")
@@ -9,8 +10,6 @@ def menu():
     print("0 - Sair")
 
 def newCustomer():
-    import json
-    
     with open('banco.json', 'r') as f:
         clientes = json.load(f)
 
@@ -35,7 +34,7 @@ def newCustomer():
     menu()
     
 def deleteCustomer():
-    import json
+
     cpf = input("Digite o CPF do usuário que deseja deletar: ")
     with open('banco.json', 'r') as f:
         clientes = json.load(f)
@@ -48,19 +47,54 @@ def deleteCustomer():
     menu()
 
 def debito():
+    with open('banco.json', 'r') as f:
+        clientes = json.load(f)
     cpf = input("Digite o CPF: ")
+    if cpf not in clientes:
+        cpf = input("CPF não encontrado, tente novamente: ")
     senha = input("Digite a senha: ")
-    valor = input("Digite o valor: ")
-    print(f"cpf: {cpf}")
-    print(f"senha: {senha}")
-    print(f"valor: {valor}")
+    if cpf in clientes and clientes[cpf]['senha'] != senha:
+        senha = input("Senha errada, digite novamente: ")
+    valor = float(input("Digite o valor a ser retirado: "))
+    taxa = 0    
+    
+    if cpf in clientes and clientes[cpf]['senha'] == senha:
+        if clientes[cpf]['conta'] == 'plus':
+            valor_com_juros = valor * 1.03
+            taxa = 3
+            if (clientes[cpf]['valor'] - valor_com_juros) < -5000.0:
+                print(f"Valor solitado maior do que o possivel. Você possui apenas R${clientes[cpf]['valor']},  Tente novamente.")
+                return
+        else:
+            valor_com_juros = valor * 1.05
+            taxa = 5
+            if (clientes[cpf]['valor'] - valor_com_juros) < -1000.0:
+                print(f"Valor solitado maior do que o possivel. Você possui apenas R${clientes[cpf]['valor']},  Tente novamente.")
+                return
+
+        clientes[cpf]['valor'] -= valor_com_juros
+    elif clientes[cpf]['senha'] != senha:
+        print("Você digitou a senha errada, tente novamente")
+    else:
+        print("CPF não encontrado!")
+
+    with open('banco.json', 'w') as f:
+        json.dump(clientes, f)
+    print(f"Valor de R$ {valor} com taxa de ${taxa}% debitado com sucesso!")     
     menu()
 
 def deposito():
     cpf = input("Digite o CPF: ")
-    valor = input("Digite o valor: ")
-    print(f"cpf: {cpf}")
-    print(f"valor: {valor}")
+    valor = float(input("Digite o valor: "))
+    with open('banco.json', 'r') as f:
+        clientes = json.load(f)
+    if cpf in clientes:
+        clientes[cpf]['valor'] += valor
+        print(clientes[cpf])
+
+    with open('banco.json', 'w') as f:
+        json.dump(clientes, f)
+    print(f"Depósito no valor de {valor} realizado!")
     menu()
 
 def extrato():
@@ -71,14 +105,31 @@ def extrato():
     menu()
 
 def transfer():
+    with open('banco.json', 'r') as f:
+        clientes = json.load(f)
     cpf = input("Digite o CPF(Origem): ")
+    if cpf not in clientes:
+        cpf = input("CPF não encontrado, tente novamente: ")
+    
     senha = input("Digite a senha: ")
+    if cpf in clientes and clientes[cpf]['senha'] != senha:
+        senha = input("Senha errada, digite novamente: ")
     cpf_1 = input("Digite o CPF(Destino): ")
-    valor = input("Digite o valor: ")
-    print(f"cpf: {cpf}")
-    print(f"senha: {senha}")
-    print(f"cpf destino: {cpf_1}")
-    print(f"valor: {valor}")
+
+    if cpf_1 not in clientes:
+        cpf_1 = input("CPF de destino não encontrado, digite novamente: ")
+
+    valor = float(input("Digite o valor: "))
+    
+    if clientes[cpf]['valor'] < valor:
+        print(f"Saldo indisponivel, seu saldo é de {clientes[cpf]['valor']}")
+        return
+    else:
+        clientes[cpf_1]['valor'] += valor
+        clientes[cpf]['valor'] -= valor
+        
+    with open('banco.json', 'w') as f:
+        json.dump(clientes, f)
     menu()
 
 def operacao_livre():
