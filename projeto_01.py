@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+
 def menu():
     print("1 - Novo Cliente")
     print("2 - Apaga Cliente")
@@ -6,7 +8,7 @@ def menu():
     print("4 - Depósito")
     print("5 - Extrato")
     print("6 - Transferência Entre Contas")
-    print("7 - 'Operação Livre'")
+    print("7 - Trocar senha")
     print("0 - Sair")
 
 def newCustomer():
@@ -24,7 +26,8 @@ def newCustomer():
         "cpf": cpf,
         "senha": senha,
         "valor": inicial,
-        "conta": conta
+        "conta": conta,
+        'extrato': []
     }
 
     clientes[cpf] = cliente
@@ -56,23 +59,37 @@ def debito():
     if cpf in clientes and clientes[cpf]['senha'] != senha:
         senha = input("Senha errada, digite novamente: ")
     valor = float(input("Digite o valor a ser retirado: "))
-    taxa = 0    
+    taxa = 0 
+    tarifa = 0   
     
     if cpf in clientes and clientes[cpf]['senha'] == senha:
         if clientes[cpf]['conta'] == 'plus':
             valor_com_juros = valor * 1.03
+            tarifa = valor * 0.03
             taxa = 3
             if (clientes[cpf]['valor'] - valor_com_juros) < -5000.0:
                 print(f"Valor solitado maior do que o possivel. Você possui apenas R${clientes[cpf]['valor']},  Tente novamente.")
                 return
         else:
             valor_com_juros = valor * 1.05
+            tarifa = valor * 0.05 
             taxa = 5
             if (clientes[cpf]['valor'] - valor_com_juros) < -1000.0:
                 print(f"Valor solitado maior do que o possivel. Você possui apenas R${clientes[cpf]['valor']},  Tente novamente.")
                 return
+            
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        saldo_final = clientes[cpf]['valor'] =  clientes[cpf]['valor'] - valor_com_juros
+ 
+        extrato = {
+            'data': dt_string,
+            'tarifa': f'R$ {tarifa}',
+            'saldo': saldo_final,
+            'tipo': 'Debito'
+        }
+        clientes[cpf]['extrato'].append(extrato)
 
-        clientes[cpf]['valor'] -= valor_com_juros
     elif clientes[cpf]['senha'] != senha:
         print("Você digitou a senha errada, tente novamente")
     else:
@@ -90,7 +107,17 @@ def deposito():
         clientes = json.load(f)
     if cpf in clientes:
         clientes[cpf]['valor'] += valor
-        print(clientes[cpf])
+
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+ 
+        extrato = {
+            'data': dt_string,
+            'tarifa': 0,
+            'saldo': clientes[cpf]['valor'],
+            'tipo': 'Deposito'
+        }
+        clientes[cpf]['extrato'].append(extrato)
 
     with open('banco.json', 'w') as f:
         json.dump(clientes, f)
@@ -98,10 +125,22 @@ def deposito():
     menu()
 
 def extrato():
+    with open('banco.json', 'r') as f:
+        clientes = json.load(f)
     cpf = input("Digite o CPF: ")
+    if cpf not in clientes:
+        cpf = input("CPF não encontrado, tente novamente: ")
     senha = input("Digite a senha: ")
-    print(f"cpf: {cpf}")
-    print(f"senha: {senha}")
+
+    if cpf in clientes and clientes[cpf]['senha'] != senha:
+        senha = input("Senha errada, digite novamente: ")
+    if cpf in clientes:
+        print(f"Nome: {clientes[cpf]['nome']}")
+        print(f"CPF: {clientes[cpf]['cpf']}")
+        print(f"Tipo de conta: {clientes[cpf]['conta']}")
+        for linha in clientes[cpf]['extrato']:
+            print(linha)
+
     menu()
 
 def transfer():
@@ -127,13 +166,46 @@ def transfer():
     else:
         clientes[cpf_1]['valor'] += valor
         clientes[cpf]['valor'] -= valor
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        
+        extrato = {
+            'data': dt_string,
+            'tarifa': 0,
+            'saldo': clientes[cpf]['valor'],
+            'tipo': 'Transferência'
+        }
+
+        extrato1 = {
+            'data': dt_string,
+            'tarifa': 0,
+            'saldo': clientes[cpf_1]['valor'],
+            'tipo': 'Recebimento'
+        }
+
+        clientes[cpf]['extrato'].append(extrato)
+        clientes[cpf_1]['extrato'].append(extrato1)
         
     with open('banco.json', 'w') as f:
         json.dump(clientes, f)
     menu()
 
 def operacao_livre():
-    print("operação livre(em breve)")
+    with open('banco.json', 'r') as f:
+        clientes = json.load(f)
+    cpf = input("Digite o seu CPF: ")
+    if cpf not in clientes:
+        cpf = input("CPF não encontrado, tente novamente: ")
+    
+    senha_nova = input("Digite a sua nova senha: ")
+    if cpf in clientes:
+        clientes[cpf]['senha'] = senha_nova
+    
+    with open('banco.json', 'w') as f:
+        json.dump(clientes, f)
+    
+    print("Parabéns, sua senha foi alterada com sucesso!")
+    menu()
     
 
 def exit():
